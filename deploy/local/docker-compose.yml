@@ -1,0 +1,73 @@
+# Chạy thử / dùng nội bộ IntelShield trên một máy có Docker — Windows, macOS hoặc Linux.
+#
+#   bash deploy/local/start.sh          (Linux, macOS, Git Bash)
+#   .\deploy\local\start.ps1            (Windows PowerShell)
+#
+#   web    → http://localhost:${WEB_PORT}     trang quản lý (Next.js); /api chuyển tới backend
+#   mobile → http://localhost:${MOBILE_PORT}  app điện thoại chạy trên trình duyệt (để thử)
+#
+# Không chạy tay tệp này: script tạo .env (mật khẩu ngẫu nhiên) và dựng công ty demo.
+# Backend tự chạy migration khi khởi động. Bản cho máy chủ có tên miền nằm ở deploy/vps/.
+name: intelshield-local
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${DB_USERNAME}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+      POSTGRES_DB: ${DB_DATABASE}
+      TZ: Asia/Ho_Chi_Minh
+      PGTZ: Asia/Ho_Chi_Minh
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U ${DB_USERNAME} -d ${DB_DATABASE}']
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+  backend:
+    build: ../../backend
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+    env_file: .env
+    environment:
+      NODE_ENV: production
+      PORT: 5001
+      DB_HOST: postgres
+      DB_PORT: 5432
+      UPLOAD_DIR: /app/uploads
+      TRUST_PROXY: loopback,uniquelocal
+      CORS_ORIGIN: http://localhost:${WEB_PORT:-8082},http://localhost:${MOBILE_PORT:-8083},https://localhost
+    volumes:
+      - uploads:/app/uploads
+
+  web:
+    build:
+      context: ../../web
+      args:
+        API_URL: http://backend:5001
+    restart: unless-stopped
+    depends_on:
+      - backend
+    ports:
+      - '${WEB_PORT:-8082}:5000'
+
+  mobile:
+    build:
+      context: ../../mobile
+      args:
+        VITE_API_BASE: http://localhost:${WEB_PORT:-8082}/api
+    restart: unless-stopped
+    depends_on:
+      - backend
+    ports:
+      - '${MOBILE_PORT:-8083}:80'
+
+volumes:
+  pgdata:
+  uploads:

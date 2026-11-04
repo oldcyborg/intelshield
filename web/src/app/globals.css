@@ -1,0 +1,39 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+body {
+  @apply bg-slate-50 text-slate-900;
+}
+
+/*
+ * Below `lg` every table sits in an `overflow-x-auto` frame. A wide table left at `w-full` would instead squeeze
+ * its columns down to one word per line, so tables with many columns keep a minimum width and scroll inside
+ * their frame. Sized by column count with :has() — one rule, no per-page width to drift.
+ */
+@media (max-width: 1023px) {
+  .overflow-x-auto > table:has(tr > :nth-child(4)) {
+    min-width: 34rem;
+  }
+  .overflow-x-auto > table:has(tr > :nth-child(6)) {
+    min-width: 46rem;
+  }
+  .overflow-x-auto > table:has(tr > :nth-child(8)) {
+    min-width: 58rem;
+  }
+}
+
+/*
+ * A frame that scrolls sideways must say so: on the attendance table only two columns fit a phone, and nothing
+ * told the reader that status and clock times sat to the right. Shadows appear on an edge only while content
+ * hides behind it (background-attachment: local covers them at each end). Pure CSS, no scroll listener.
+ */
+@media (max-width: 1023px) {
+  .overflow-x-auto {
+    background:
+      linear-gradient(to right, white 30%, rgb(255 255 255 / 0)) left center / 2.5rem 100% no-repeat local,
+      linear-gradient(to left, white 30%, rgb(255 255 255 / 0)) right center / 2.5rem 100% no-repeat local,
+      radial-gradient(farthest-side at 0 50%, rgb(15 23 42 / 0.18), transparent) left center / 0.75rem 100% no-repeat scroll,
+      radial-gradient(farthest-side at 100% 50%, rgb(15 23 42 / 0.18), transparent) right center / 0.75rem 100% no-repeat scroll;
+  }
+}

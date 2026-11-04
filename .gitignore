@@ -1,0 +1,10 @@
+node_modules/
+dist/
+.next/
+coverage/
+.env
+uploads/
+*.tsbuildinfo
+.superpowers/
+*.apk
+tools/tutorial-videos/out/

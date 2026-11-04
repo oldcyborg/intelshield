@@ -1,0 +1,50 @@
+# Mẫu cho deploy/vps/install.sh (thay __DOMAIN__, __WEB_PORT__, __API_PORT__).
+# Đích: /etc/nginx/sites-available/intelshield.conf
+# Sau khi chép: ln -s /etc/nginx/sites-available/intelshield.conf /etc/nginx/sites-enabled/
+#               nginx -t && systemctl reload nginx
+#               certbot --nginx -d __DOMAIN__   (certbot tự thêm phần HTTPS và chuyển hướng 80 → 443)
+
+server {
+    listen 80;
+    listen [::]:80;
+    server_name __DOMAIN__;
+
+    # Ảnh chấm công, sự cố (backend giới hạn 10 MB mỗi ảnh).
+    client_max_body_size 12m;
+
+    # API cho web và app điện thoại → backend :5001
+    location /api/ {
+        proxy_pass http://127.0.0.1:__API_PORT__;
+        proxy_http_version 1.1;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_read_timeout 60s;
+    }
+
+    # Thông báo tức thời (SSE): không đệm, giữ kết nối lâu.
+    location = /api/me/events {
+        proxy_pass http://127.0.0.1:__API_PORT__;
+        proxy_http_version 1.1;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_set_header Connection '';
+        proxy_buffering off;
+        proxy_cache off;
+        proxy_read_timeout 1h;
+    }
+
+
+    # Trang quản lý → web :5000
+    location / {
+        proxy_pass http://127.0.0.1:__WEB_PORT__;
+        proxy_http_version 1.1;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
+}
